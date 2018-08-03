@@ -53,7 +53,7 @@ class Board {
             stroke: 'red',
             strokeWidth: 2
           });
-          circle.on('click', function() {
+          circle.on('click tap', function() {
             var color = this.fill() == 'white' ? 'yellow' : 'white';
             this.fill(color);
             layer.draw();
