@@ -37,32 +37,65 @@ class Board {
   constructor(stage, size) {
     this.stage = stage;
     this.size = size;
+    this.fields = this.initFields(size);
+    this.backgroundLayer = new Konva.Layer();
+    this.stonesLayer = new Konva.Layer();
+    this.stones = {};
+    this.stage.add(this.backgroundLayer);
+    this.stage.add(this.stonesLayer);
+  }
+
+  initFields(size) {
+    var n = 2*size - 1;
+    return Array(n).fill(0).map(x => Array(n).fill(0));
   }
 
   show() {
-    var fieldSize = 1000 / (2*this.size-1);
-    var layer = new Konva.Layer();
-    for (var i=1-this.size; i<this.size; i++) {
-      for (var j=1-this.size; j<this.size; j++) {
+    var n = 2*this.size-1;
+    var fieldSize = 1000 / n;
+    for (var si=0; si<n; si++) {
+      for (var sj=0; sj<n; sj++) {
+        var i = si - this.size + 1;
+        var j = sj - this.size + 1;
         if (Math.abs(i-j)<this.size) {
+          let [x, y] = this.positionOfField(i, j);
           var circle = new Konva.Circle({
-            x: 750 + i*fieldSize - 0.5*j*fieldSize,
-            y: 500 + j*fieldSize*0.866,
-            radius: fieldSize / 2,
+            x: x,
+            y: y,
+            radius: fieldSize * 0.5,
             fill: 'white',
             stroke: 'red',
             strokeWidth: 2
           });
-          circle.on('click tap', function() {
+          var fieldContent = this.fields[si][sj];
+          var backgroundLayer = this.backgroundLayer;
+          circle.on('mousedown touchdown', function() {
             var color = this.fill() == 'white' ? 'yellow' : 'white';
             this.fill(color);
-            layer.draw();
+            backgroundLayer.draw();
           });
-          layer.add(circle);
+          this.backgroundLayer.add(circle);
+          if (['A', 'B'].includes(fieldContent)) {
+            var stoneColor = fieldContent == 'A' ? 'red' : 'blue';
+            var stoneCircle = new Konva.Circle({
+              x: x,
+              y: y,
+              radius: fieldSize * 0.4,
+              fill: stoneColor
+            });
+            this.putStoneAt(i, j, stoneCircle);
+            this.stonesLayer.add(stoneCircle);
+          }
         }
       }
     }
-    this.stage.add(layer);
+    this.backgroundLayer.draw();
+    this.stonesLayer.draw();
+  }
+
+  positionOfField(i, j) {
+    var fieldSize = 1000 / (2*this.size-1);
+    return [750 + i*fieldSize - 0.5*j*fieldSize, 500 + j*fieldSize*0.866];
   }
 
   showSample(text) {
@@ -97,11 +130,63 @@ class Board {
     layer.add(text);
     this.stage.add(layer);
   }
+
+  putStoneAt(i, j, stone) {
+    this.stones[this.keyFor(i, j)] = stone;
+  }
+
+  removeStoneAt(i, j) {
+    this.stones[this.keyFor(i, j)] = null;
+  }
+
+  getStoneFrom(i, j) {
+    return this.stones[this.keyFor(i, j)];
+  }
+
+  keyFor(i, j) {
+    return 'key'+i+':'+j;
+  }
+
+  animate(i1, j1, i2, j2, time) {
+    var stone = this.getStoneFrom(i1, j1);
+    var [x1, y1] = this.positionOfField(i1, j1);
+    var [x2, y2] = this.positionOfField(i2, j2);
+    var anim = new Konva.Animation(function(frame) {
+      var ratio = frame.time / time;
+      var posratio = 0.5 - Math.cos(ratio * Math.PI)/2;
+      var x = x1 * (1-posratio) + x2 * posratio;
+      var y = y1 * (1-posratio) + y2 * posratio;
+      stone.position({x: x, y: y});
+    }, this.stonesLayer);
+
+    anim.start();
+    setTimeout(() => {
+      anim.stop();
+      stone.position({x: x2, y: y2});
+      this.stonesLayer.draw();
+      this.removeStoneAt(i1, j2);
+      this.putStoneAt(i2, j2, stone);
+    }, time);
+  }
 }
 
 $(function() {
   var stage = initStage();
   var board = new Board(stage, 3);
   //board.showSample('Enolaba');
+  board.fields[1][1] = 'A';
+  board.fields[2][1] = 'B';
+  board.fields[2][2] = 'B';
   board.show();
+  setTimeout(() => {
+    board.animate(0,0,1,1,500);
+    board.animate(-1,-1,0,0,500);
+  }, 1000);
+  setTimeout(() => {
+    board.animate(0,0,-1,0,500);
+  }, 2000);
+  setTimeout(() => {
+    board.animate(1,1,0,1,500);
+    board.animate(0,-1,-1,-1,500);
+  }, 3000);
 });
