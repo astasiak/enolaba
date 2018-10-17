@@ -69,7 +69,7 @@ class Board {
           });
           var fieldContent = this.fields[si][sj];
           var backgroundLayer = this.backgroundLayer;
-          circle.on('mousedown touchdown', function() {
+          circle.on('mousedown touchstart', function() {
             var color = this.fill() == 'white' ? 'yellow' : 'white';
             this.fill(color);
             backgroundLayer.draw();
@@ -89,46 +89,34 @@ class Board {
         }
       }
     }
+    this.showRotatingStar();
     this.backgroundLayer.draw();
     this.stonesLayer.draw();
+  }
+
+  showRotatingStar() {
+    var star = new Konva.Star({
+      x: 100,
+      y: 100,
+      numPoints: 7,
+      innerRadius: 40,
+      outerRadius: 70,
+      fill: 'yellow',
+      stroke: 'black',
+      strokeWidth: 4
+    });
+    this.stonesLayer.add(star);
+    var angularSpeed = 90;
+    var anim = new Konva.Animation(function(frame) {
+        var angleDiff = frame.timeDiff * angularSpeed / 1000;
+        star.rotate(angleDiff);
+    }, this.stonesLayer);
+    anim.start();
   }
 
   positionOfField(i, j) {
     var fieldSize = 1000 / (2*this.size-1);
     return [750 + i*fieldSize - 0.5*j*fieldSize, 500 + j*fieldSize*0.866];
-  }
-
-  showSample(text) {
-    var layer = new Konva.Layer();
-    var rect = new Konva.Rect({
-      x: 0,
-      y: 0,
-      width: 1500,
-      height: 1000,
-      fill: 'green',
-      stroke: 'black',
-      strokeWidth: 4
-    });
-    layer.add(rect);
-    var circle = new Konva.Circle({
-      x: 750,
-      y: 500,
-      radius: 300,
-      fill: 'red',
-      stroke: 'blue',
-      strokeWidth: 20
-    });
-    layer.add(circle);
-    var text = new Konva.Text({
-      x: 100,
-      y: 250,
-      text: text,
-      fontSize: 400,
-      fontFamily: 'Calibri',
-      fill: 'yellow'
-    });
-    layer.add(text);
-    this.stage.add(layer);
   }
 
   putStoneAt(i, j, stone) {
